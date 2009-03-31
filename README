@@ -1,0 +1,51 @@
+NAME
+    AnyEvent::SNMP - adaptor to integrate Net::SNMP into Anyevent.
+
+SYNOPSIS
+     use AnyEvent::SNMP;
+     use Net::SNMP;
+
+     # just use Net::SNMP and AnyEvent as you like:
+
+     # use a condvar to transfer results, this is
+     # just an example, you can use a naked callback as well.
+     my $cv = AnyEvent->condvar;
+
+     # ... start non-blocking snmp request(s)...
+     Net::SNMP->session (-hostname => "127.0.0.1",
+                         -community => "public",
+                         -nonblocking => 1)
+              ->get_request (-callback => sub { $cv->send (@_) });
+
+     # ... do something else until the result is required
+     my @result = $cv->wait;
+
+DESCRIPTION
+    This module implements an alternative "event dispatcher" for Net::SNMP,
+    using AnyEvent as a backend.
+
+    This integrates Net::SNMP into AnyEvent: You can make non-blocking
+    Net::SNMP calls and as long as other parts of your program also use
+    AnyEvent (or some event loop supported by AnyEvent), they will run in
+    parallel.
+
+    Also, the Net::SNMP scheduler is very inefficient with respect to both
+    CPU and memory usage. Most AnyEvent backends (including the pure-perl
+    backend) fare much better than the Net::SNMP dispatcher.
+
+    A potential disadvantage is that replacing the dispatcher is not at all
+    a documented thing to do, so future changes in Net::SNP might break this
+    module (or the many similar ones).
+
+    This module does not export anything and does not require you to do
+    anything special apart from loading it *before doing any non-blocking
+    requests with Net::SNMP*. It is recommended but not required to load
+    this module before "Net::SNMP".
+
+SEE ALSO
+    AnyEvent, Net::SNMP, Net::SNMP::EV.
+
+AUTHOR
+     Marc Lehmann <schmorp@schmorp.de>
+     http://home.schmorp.de/
+

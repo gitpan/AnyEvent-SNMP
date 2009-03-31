@@ -1,0 +1,5 @@
+Revision history for AnyEvent::SNMP
+
+0.1  Wed Apr  1 00:39:08 CEST 2009
+	- original version, cloned from Net::SNMP::EV, but
+          very different.
