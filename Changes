@@ -1,5 +1,9 @@
 Revision history for AnyEvent::SNMP
 
+0.11 Fri Apr 10 07:32:23 CEST 2009
+	- fix testsuite loading the wrong module
+          (reported by Karl Gaissmaier).
+
 0.1  Wed Apr  1 00:39:08 CEST 2009
 	- original version, cloned from Net::SNMP::EV, but
           very different.

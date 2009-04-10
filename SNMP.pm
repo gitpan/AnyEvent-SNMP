@@ -63,7 +63,7 @@ sub Net::SNMP::Dispatcher::instance {
 use Net::SNMP ();
 use AnyEvent ();
 
-our $VERSION = '0.1';
+our $VERSION = '0.11';
 
 $Net::SNMP::DISPATCHER = instance Net::SNMP::Dispatcher;
 
