@@ -1,6 +1,6 @@
 =head1 NAME
 
-AnyEvent::SNMP - adaptor to integrate Net::SNMP into Anyevent.
+AnyEvent::SNMP - adaptor to integrate Net::SNMP into AnyEvent.
 
 =head1 SYNOPSIS
 
@@ -77,8 +77,8 @@ AnyEvent::SNMP tries to dynamically adjust this number dynamically upwards
 and downwards.
 
 Increasing C<$MAX_OUTSTANDING> will not automatically use the
-C<extra request slots. To increase $MAX_OUTSTANDING> and make
-C<C<AnyEvent::SNMP> make use of the extra paralellity, call
+extra request slots. To increase C<$MAX_OUTSTANDING> and make
+C<AnyEvent::SNMP> make use of the extra paralellity, call
 C<AnyEvent::SNMP::set_max_outstanding> with the new value, e.g.:
 
    AnyEvent::SNMP::set_max_outstanding 500;
@@ -147,17 +147,14 @@ sub Net::SNMP::Dispatcher::instance {
 use Net::SNMP ();
 use AnyEvent ();
 
-our $VERSION = '0.2';
+our $VERSION = '1.0';
 
 $Net::SNMP::DISPATCHER = instance Net::SNMP::Dispatcher;
 
 our $MESSAGE_PROCESSING = $Net::SNMP::Dispatcher::MESSAGE_PROCESSING;
 
-# avoid the method call
-my $timer = sub { shift->timer (@_) };
-AnyEvent::post_detect { $timer = AnyEvent->can ("timer") };
-
 our $BUSY;
+our $DONE; # finished all jobs
 our @TRANSPORT; # fileno => [count, watcher]
 our @QUEUE;
 our $MAX_OUTSTANDING = 50;
@@ -190,10 +187,10 @@ sub _send_pdu {
 
       # A crude attempt to recover from temporary failures.
       if ($retries-- > 0 && ($!{EAGAIN} || $!{EWOULDBLOCK} || $!{ENOSPC})) {
-         my $retry_w; $retry_w = AnyEvent->$timer (after => $pdu->timeout, cb => sub {
+         my $retry_w; $retry_w = AE::timer $pdu->timeout, 0, sub {
             undef $retry_w;
             _send_pdu ($pdu, $retries);
-         });
+         };
       } else {
          --$BUSY;
          kick_job;
@@ -211,7 +208,7 @@ sub _send_pdu {
 
       # register the transport
       unless ($TRANSPORT[$fileno][0]++) {
-         $TRANSPORT[$fileno][1] = AnyEvent->io (fh => $transport->socket, poll => 'r', cb => sub {
+         $TRANSPORT[$fileno][1] = AE::io $transport->socket, 0, sub {
             for my $count (1..$MAX_RECVQUEUE) { # handle up to this many requests in one go
                # Create a new Message object to receive the response
                my ($msg, $error) = Net::SNMP::Message->new (-transport => $transport);
@@ -276,11 +273,11 @@ sub _send_pdu {
             # replies in one iteration, so assume we are overloaded
             # and reduce the amount of parallelity.
             $MAX_OUTSTANDING = (int $MAX_OUTSTANDING * 0.95) || 1;
-         });
+         };
       }
 
       $msg->timeout_id (\(my $rtimeout_w =
-         AnyEvent->$timer (after => $pdu->timeout, cb => sub {
+         AE::timer $pdu->timeout, 0, sub {
             my $rtimeout_w = $msg->timeout_id;
             if ($$rtimeout_w) {
                undef $$rtimeout_w;
@@ -298,7 +295,7 @@ sub _send_pdu {
                kick_job;
             }
          })
-      )); 
+      ); 
    } else {
      --$BUSY;
      kick_job;
@@ -311,9 +308,10 @@ sub kick_job {
          or last;
 
       ++$BUSY;
-
       _send_pdu $pdu, $pdu->retries;
    }
+
+   $DONE and $DONE->() unless $BUSY;
 }
 
 sub send_pdu($$$) {
@@ -323,12 +321,12 @@ sub send_pdu($$$) {
    # but apparently it is not a very sensible feature.
    if ($delay > 0) {
       ++$BUSY;
-      my $delay_w; $delay_w = AnyEvent->$timer (after => $delay, cb => sub {
+      my $delay_w; $delay_w = AE::timer $delay, 0, sub {
          undef $delay_w;
-         --$BUSY;
          push @QUEUE, $pdu;
+         --$BUSY;
          kick_job;
-      });
+      };
       return 1;
    }
 
@@ -339,11 +337,16 @@ sub send_pdu($$$) {
 }
 
 sub activate($) {
-   AnyEvent->one_event while $BUSY;
+   while ($BUSY) {
+      $DONE = AE::cv;
+      $DONE->recv;
+      undef $DONE;
+   }
 }
 
 sub one_event($) {
-   AnyEvent->one_event;
+   # should not ever be used
+   AnyEvent->one_event; #d# todo
 }
 
 sub set_max_outstanding($) {

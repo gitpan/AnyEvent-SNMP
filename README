@@ -1,5 +1,5 @@
 NAME
-    AnyEvent::SNMP - adaptor to integrate Net::SNMP into Anyevent.
+    AnyEvent::SNMP - adaptor to integrate Net::SNMP into AnyEvent.
 
 SYNOPSIS
      use AnyEvent::SNMP;
@@ -68,10 +68,10 @@ GLOBAL VARIABLES
         AnyEvent::SNMP tries to dynamically adjust this number dynamically
         upwards and downwards.
 
-        Increasing $MAX_OUTSTANDING will not automatically use the "extra
-        request slots. To increase $MAX_OUTSTANDING" and make
-        ""AnyEvent::SNMP" make use of the extra paralellity, call
-        "AnyEvent::SNMP::set_max_outstanding" with the new value, e.g.:"
+        Increasing $MAX_OUTSTANDING will not automatically use the extra
+        request slots. To increase $MAX_OUTSTANDING and make
+        "AnyEvent::SNMP" make use of the extra paralellity, call
+        "AnyEvent::SNMP::set_max_outstanding" with the new value, e.g.:
 
            AnyEvent::SNMP::set_max_outstanding 500;
 
@@ -123,11 +123,4 @@ SEE ALSO
 AUTHOR
      Marc Lehmann <schmorp@schmorp.de>
      http://home.schmorp.de/
-
-POD ERRORS
-    Hey! The above document had some coding errors, which are explained
-    below:
-
-    Around line 79:
-        Unterminated C<...> sequence
 
