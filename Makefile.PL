@@ -9,8 +9,9 @@ my $mm = MM->new({
     NAME         => "AnyEvent::SNMP",
     VERSION_FROM => "SNMP.pm",
     PREREQ_PM    => {
-       Net::SNMP => 5,
-       AnyEvent  => 5.23,
+       common::sense => 3.3,
+       Net::SNMP     => 5,
+       AnyEvent      => 5.23,
     },
 });
 

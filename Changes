@@ -1,5 +1,12 @@
 Revision history for AnyEvent::SNMP
 
+6.0  Sun Apr 15 12:21:38 CEST 2012
+	- compatibility with 6.0.1 restored.
+        - provide msg_handle_alloc method, as required by 6.0.
+        - provide loop method, as required by 6.0.
+	- improve documentation a bit.
+        - use common::sense.
+
 1.0  Wed Jan  6 11:42:57 CET 2010
 	- use the faster AE::* functions.
         - do no longer rely on the undocumented AnyEvent->loop method.

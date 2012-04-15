@@ -22,20 +22,24 @@ SYNOPSIS
 
 DESCRIPTION
     This module implements an alternative "event dispatcher" for Net::SNMP,
-    using AnyEvent as a backend.
-
-    This integrates Net::SNMP into AnyEvent: You can make non-blocking
-    Net::SNMP calls and as long as other parts of your program also use
-    AnyEvent (or some event loop supported by AnyEvent), they will run in
-    parallel.
+    using AnyEvent as a backend. This integrates Net::SNMP into AnyEvent.
+    That means you can make non-blocking Net::SNMP calls and as long as
+    other parts of your program also use AnyEvent (or some event loop
+    supported by AnyEvent), they will run in parallel.
 
     Also, the Net::SNMP scheduler is very inefficient with respect to both
     CPU and memory usage. Most AnyEvent backends (including the pure-perl
     backend) fare much better than the Net::SNMP dispatcher.
 
-    A potential disadvantage is that replacing the dispatcher is not at all
-    a documented thing to do, so future changes in Net::SNP might break this
-    module (or the many similar ones).
+    Another major added fetaure of this module over Net::SNMP is automatic
+    rate-adjustments: Net::SNMP is so slow that firing a few thousand
+    requests can cause many timeouts simply because Net::SNMP cannot process
+    the replies in time. This module automatically adapts the send rate to
+    avoid false timeouts caused by slow reply processing.
+
+    A potential disadvantage of this module is that replacing the dispatcher
+    is not at all a documented thing to do, so future changes in Net::SNP
+    might break this module (or the many similar ones).
 
     This module does not export anything and does not require you to do
     anything special apart from loading it *before doing any non-blocking
@@ -65,8 +69,8 @@ GLOBAL VARIABLES
         load of the machine running Net::SNMP, but also on the network
         latency and the speed of your SNMP agents.
 
-        AnyEvent::SNMP tries to dynamically adjust this number dynamically
-        upwards and downwards.
+        AnyEvent::SNMP tries to dynamically adjust this number upwards and
+        downwards.
 
         Increasing $MAX_OUTSTANDING will not automatically use the extra
         request slots. To increase $MAX_OUTSTANDING and make

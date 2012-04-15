@@ -25,20 +25,24 @@ AnyEvent::SNMP - adaptor to integrate Net::SNMP into AnyEvent.
 =head1 DESCRIPTION
 
 This module implements an alternative "event dispatcher" for Net::SNMP,
-using AnyEvent as a backend.
-
-This integrates Net::SNMP into AnyEvent: You can make non-blocking
-Net::SNMP calls and as long as other parts of your program also use
-AnyEvent (or some event loop supported by AnyEvent), they will run in
-parallel.
+using AnyEvent as a backend. This integrates Net::SNMP into AnyEvent. That
+means you can make non-blocking Net::SNMP calls and as long as other
+parts of your program also use AnyEvent (or some event loop supported by
+AnyEvent), they will run in parallel.
 
 Also, the Net::SNMP scheduler is very inefficient with respect to both CPU
 and memory usage. Most AnyEvent backends (including the pure-perl backend)
 fare much better than the Net::SNMP dispatcher.
 
-A potential disadvantage is that replacing the dispatcher is not at all
-a documented thing to do, so future changes in Net::SNP might break this
-module (or the many similar ones).
+Another major added fetaure of this module over Net::SNMP is automatic
+rate-adjustments:  Net::SNMP is so slow that firing a few thousand
+requests can cause many timeouts simply because Net::SNMP cannot process
+the replies in time. This module automatically adapts the send rate to
+avoid false timeouts caused by slow reply processing.
+
+A potential disadvantage of this module is that replacing the dispatcher
+is not at all a documented thing to do, so future changes in Net::SNP
+might break this module (or the many similar ones).
 
 This module does not export anything and does not require you to do
 anything special apart from loading it I<before doing any non-blocking
@@ -73,8 +77,8 @@ Unfortunately, this number depends not only on processing speed and load
 of the machine running Net::SNMP, but also on the network latency and the
 speed of your SNMP agents.
 
-AnyEvent::SNMP tries to dynamically adjust this number dynamically upwards
-and downwards.
+AnyEvent::SNMP tries to dynamically adjust this number upwards and
+downwards.
 
 Increasing C<$MAX_OUTSTANDING> will not automatically use the
 extra request slots. To increase C<$MAX_OUTSTANDING> and make
@@ -133,12 +137,15 @@ of mixing Net::SNMP events with other events.
 
 package AnyEvent::SNMP;
 
-no warnings;
-use strict qw(subs vars);
+use common::sense;
 
 # it is possible to do this without loading
 # Net::SNMP::Dispatcher, but much more awkward.
 use Net::SNMP::Dispatcher;
+
+# we could inherit fro Net:SNMP::Dispatcher, but since this is undocumented,
+# I'd rather see it die (and reported) than silenty and subtly fail.
+*msg_handle_alloc = \&Net::SNMP::Dispatcher::msg_handle_alloc;
 
 sub Net::SNMP::Dispatcher::instance {
    AnyEvent::SNMP::
@@ -147,7 +154,7 @@ sub Net::SNMP::Dispatcher::instance {
 use Net::SNMP ();
 use AnyEvent ();
 
-our $VERSION = '1.0';
+our $VERSION = '6.0';
 
 $Net::SNMP::DISPATCHER = instance Net::SNMP::Dispatcher;
 
@@ -336,13 +343,16 @@ sub send_pdu($$$) {
    1
 }
 
-sub activate($) {
+sub loop($) {
    while ($BUSY) {
       $DONE = AE::cv;
       $DONE->recv;
       undef $DONE;
    }
 }
+
+*activate = \&loop; # 5.x compatibility?
+*listen   = \&loop; # 5.x compatibility?
 
 sub one_event($) {
    # should not ever be used
@@ -353,6 +363,15 @@ sub set_max_outstanding($) {
    $MAX_OUTSTANDING = $_[0];
    kick_job;
 }
+
+# not provided yet:
+# schedule            # apparently only used by Net::SNMP::Dispatcher itself
+# register            # apparently only used by Net::SNMP::Dispatcher itself
+# deregister          # apparently only used by Net::SNMP::Dispatcher itself
+# cancel              # apparently only used by Net::SNMP::Dispatcher itself
+# return_response_pdu # apparently not used at all?
+# error               # only used by Net::SNMP::Dispatcher itself?
+# debug               # only used by Net::SNMP::Dispatcher itself?
 
 =head1 SEE ALSO
 
